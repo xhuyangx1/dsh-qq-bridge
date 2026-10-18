@@ -37,7 +37,7 @@ jobs:
 
       - name: 必需文件齐全
         run: |
-          for f in README.md LICENSE package.json cordis.patch.yml; do
+          for f in README.md README.en.md LICENSE package.json cordis.patch.yml; do
             test -s "$f" || { echo "::error::缺少 $f"; exit 1; }
           done
           echo "✓ 必需文件齐全"
@@ -54,10 +54,14 @@ jobs:
 
       - name: 没有遗留的调试代码
         run: |
-          if grep -rIn --exclude-dir=.git --exclude-dir=node_modules \
+          # ⚠️ 只扫源码与测试，**必须排除 .github**。
+          #    否则这条 grep 会命中工作流文件里自己写的这些模式字符串，
+          #    变成永远失败的自指缺陷（第一版就是这样挂的）。
+          if grep -rIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.github \
                -e 'debugger' \
                -e '\.only(' \
-               -e 'TODO: remove' . ; then
+               -e 'TODO: remove' \
+               lib test ; then
             echo "::error::发现遗留的调试代码"
             exit 1
           fi
