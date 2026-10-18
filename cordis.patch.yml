@@ -1,0 +1,85 @@
+# dsh-qq-bridge bundle patch — 把 QQ 变成 DSH 的远程入口
+#
+# 默认不启用。装完先编辑 profile 层的 cordis.patch.yml 覆盖下面的 config，
+# 至少填上 allowedUsers（你的 QQ 号），再改成 disabled: false。
+- insert:
+    - id: qq-bridge
+      name: 'dsh-qq-bridge'
+      disabled: true
+      config:
+        # 只响应私聊，群里发什么都不处理（推荐）
+        privateOnly: true
+
+        # 允许的群号；仅 privateOnly: false 时生效。
+        # ⚠️ 空数组的语义是「不限制任何群」，别用清空来实现只私聊。
+        allowedGroups:
+          - 123456789
+
+        # 允许的 QQ 号；留空 = 不限制（任何人都能驱动你的机器）
+        allowedUsers:
+          - 10000001
+
+        # 每个聊天一个持久会话，上下文连续
+        perGroupSession: true
+        commandPrefixes:
+          - '/dsh'
+          - '/DSH'
+        # 仅群聊生效：不含前缀时必须 @ 机器人
+        requireMention: true
+        # 命中前缀但没写任务时，回复帮助
+        helpOnEmpty: true
+
+        cwd: ''
+        timeoutSeconds: 600
+        maxOutputChars: 3000
+        maxConcurrent: 2
+        allowStopAnyGroup: false
+
+        # 收到消息立刻回执，让用户确认没丢
+        ackOnReceive: true
+
+        # 回答里出现独占一行的 markdown 链接 / 附件标记时，自动把文件发回聊天
+        sendAttachments: true
+
+        # 空闲多久自动开新会话（分钟，0 = 不重置）
+        resetOnIdleMins: 180
+
+        onebot:
+          endpoint: 'ws://127.0.0.1:3001'
+          accessToken: ''
+          reconnectDelayMs: 3000
+          maxReconnectDelayMs: 30000
+
+        # 长任务的进度上报：节流 + 条数封顶，避免刷屏
+        progress:
+          enabled: true
+          startAfterMs: 3000
+          minIntervalMs: 5000
+          maxMessages: 12
+
+        # 执行后端：
+        #   internal = 在 DSH 进程内建会话（推荐：无冷启动，Web 里可见可接管）
+        #   acp      = 常驻子进程（快，但会话独立）
+        #   headless = 每次 spawn（最慢，最稳）
+        backend: internal
+
+        # 仅 ACP 模式生效：切到哪个模型，形如 ['provider', 'model']
+        # acpModel: ['aggregate', 'auto']
+
+        # NapCat 安装目录（设置页「启动机器人」按钮用）
+        napcat:
+          dir: ''
+
+        command:
+          # 如果 PATH 里的 dsh 不是你要的版本，填绝对路径，例如：
+          #   Windows: 'C:\\path\\to\\dsh.cmd'
+          #   Linux:   '/usr/local/bin/dsh'
+          bin: 'dsh'
+          dir: ''
+          # 跑任务用哪个 profile（模型和凭据都在里面）
+          profile: 'headless'
+          # json = 0.1.7+ 的 --json 事件流；plain = ≤0.1.5 的纯文本
+          # 留空 = 启动时自动探测（推荐）
+          # mode: 'json'
+          extraArgs: []
+          shell: false

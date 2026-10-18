@@ -1,0 +1,48 @@
+{
+  "name": "dsh-qq-bridge",
+  "version": "0.2.0",
+  "description": "用 QQ 私聊远程驱动 DeepSeek Harness：收消息、进程内建会话、结果与产物回传，可在 DSH 设置页启停",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client/qq-bridge.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "qq",
+    "onebot",
+    "napcat",
+    "plugin",
+    "bot",
+    "agent"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "scripts": {
+    "test": "node --test test/parse.test.js test/progress.test.js",
+    "check": "node --check lib/index.js && node --check lib/napcat.js && node --check lib/internal.js && node --check lib/acp.js && node --check lib/client/qq-bridge.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}
