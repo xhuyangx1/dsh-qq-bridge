@@ -1,5 +1,7 @@
 # dsh-qq-bridge
 
+**中文** | [English](README.en.md)
+
 用 **QQ 私聊远程驱动 [DeepSeek Harness](https://github.com/deepseek-ai)**。
 
 手机上给机器人发一句话，家里/公司的电脑就真的开始干活 —— 会话直接在 DSH 进程内创建，
@@ -34,19 +36,21 @@ dsh-qq-bridge（DSH 插件）
 - **设置页控制**：在 DSH 设置里一键启停 NapCat、看状态和日志，不用碰命令行
 - **仅私聊模式**：`privateOnly: true` 时群里完全静默，避免误触发
 
-## 安装
+## 快速开始
 
 ```bash
-dsh plugin add <本仓库地址>
+dsh plugin add https://github.com/xhuyangx1/dsh-qq-bridge
 ```
 
-装完还需要：
+三步跑起来：
 
 1. **装并登录 NapCat**（让 QQ 暴露 OneBot 11 接口）
    → [NapCat 官方文档](https://napcat.napneko.icu/)
 2. **配置白名单**：编辑 profile 层的 `cordis.patch.yml`，至少填 `allowedUsers`（你的 QQ 号），
    然后把 `disabled` 改成 `false`
 3. 重启 DSH
+
+> 详细的 NapCat 配置、安装排错见下面的 [完整安装](#完整安装)。
 
 ```yaml
 - id: qq-bridge
@@ -83,7 +87,7 @@ privateOnly: true
 
 实测：群消息零响应，私聊 0.2 秒出回执。
 
-## 群里 / 私聊能做什么
+## 命令
 
 | 命令 | 作用 |
 | --- | --- |
@@ -165,45 +169,6 @@ agent.followup(createUserMessage({
 
 回复从 `session.snapshotEvents()` 取 `assistant/message` 的 text 分片，
 用 `await agent.whenIdle()` 等这一轮跑完（比轮询稳）。
-## 执行后端：ACP vs headless
-
-插件有两种执行方式，用 `backend` 配置项选择：
-
-| | `acp`（推荐） | `headless` |
-| --- | --- | --- |
-| 形态 | **常驻进程**，起一次反复用 | 每次任务 spawn 一次 |
-| 首轮耗时 | 约 5–10 秒 | 13–17 秒 |
-| 后续耗时 | **0.5–5 秒** | 13–17 秒（每次） |
-| 图片 | 协议原生支持（需模型支持） | 落地 + 路径引用 |
-| 上下文 | ACP 会话自带 | `--session-id` 续接 |
-
-### ACP 是什么
-
-`dsh --profile acp` 是 DSH **官方为自动化场景提供的常驻服务**，
-走 Agent Client Protocol（JSON-RPC over stdio）。实测协议：
-
-```
-initialize              → 返回 agentInfo、能力（含 promptCapabilities.image）
-session/new             → 建会话，返回 sessionId 和可选模型列表
-session/set_config_option → 切模型（注意是下划线写法）
-session/prompt          → 发一轮，回复走 session/update 流式通知
-session/close           → 关会话
-```
-
-### 为什么要给 acp profile 装 providers-hub
-
-`acp` 是 shipped profile，默认只认 `deepseek-official`。
-如果那个 key 是占位符，会直接报 `Authentication Fails`。
-解决办法是给它装上 `dsh-providers-hub`，就能看到 buddy/workbuddy/zcode 等渠道：
-
-```bash
-dsh plugin --profile acp add https://gitee.com/iJetLi/deepseek-harness-codearts.git
-# 然后在 profiles/acp/package.json 的 dsh.profile.bundles 里加上 dsh-providers-hub
-```
-
-### 回退
-
-`backend: headless` 立即回到旧路径，不需要改任何其他配置。
 ## 收到消息后立刻回执
 
 模型要跑几秒到几十秒，所以插件**收到消息的瞬间**先回一句：
@@ -220,10 +185,39 @@ dsh plugin --profile acp add https://gitee.com/iJetLi/deepseek-harness-codearts.
 - 图片/文件先回「收到 N 个文件，正在下载…」，再去下载；
 - 之后超过 `progress.startAfterMs`（默认 **3 秒**）的任务继续报进度。
 
-> 为什么值得：之前默认 8 秒才报进度、且没有回执，前 8 秒完全静默，
+> 为什么值得：之前默认 8 秒才报进度、且没有回执，前面那段完全静默，
 > 用户没法判断消息到底发出去没有 —— 尤其模型慢的时候。
 
 关掉用 `ackOnReceive: false`。
+
+### 执行进度
+
+长任务执行中，群里会收到这样的进度消息：
+
+```
+⏳ 进行中 24s · 第 3 步
+▸ 终端 pnpm test --filter core ✓
+▸ 读文件 /src/index.ts ✓
+▸ 搜内容 ×4 route ✓
+… 先确认依赖版本有没有被改动
+```
+
+四条约束避免刷屏：
+
+| 键 | 默认 | 含义 |
+| --- | --- | --- |
+| `progress.enabled` | `true` | 关掉就只有最终答案 |
+| `progress.startAfterMs` | `3000` | **快于此耗时的任务一条进度都不发**，跑完直接给答案 |
+| `progress.minIntervalMs` | `5000` | 两次进度的最小间隔，期间事件合并 |
+| `progress.maxMessages` | `12` | 单任务进度条数上限 |
+
+**只在工具切换时报告**：同一个工具连着调用好几次（比如连续 `grep` 四次），
+不会刷四条，只合成一条 `▸ 搜内容 ×4`。换工具、或者中间插了别的动作，才会新起一行。
+
+觉得吵就把 `minIntervalMs` 调到 15000，或直接 `enabled: false`。
+
+**同一个聊天共用一个 DSH 会话**，所以上下文是连续的：上一条让它读的文件，下一条可以接着问。
+想每次都开新会话，把 `perGroupSession` 设成 `false`，或者发 `/dsh new`。
 
 ## 多模态：图片与文件
 
@@ -275,7 +269,8 @@ dsh plugin --profile acp add https://gitee.com/iJetLi/deepseek-harness-codearts.
 
 > 代价：协议端属于非官方接入，存在被风控的理论风险。插件本身不碰 QQ 账号，只跟 OneBot 讲话；
 > 想换协议端（Lagrange 等）改 `onebot.endpoint` 即可。
-## 安装
+
+## 完整安装
 
 ### 1. 电脑装 NapCat
 
@@ -400,85 +395,44 @@ dsh --profile headless "只回复两个字：收到"
 > 这类修复改的是 `node_modules` 里的第三方包，**升级 dsh 或重装插件后会被覆盖**。
 > 出现同样的报错时按上表重新处理即可。
 
-## 群里怎么用
-
-| 消息 | 效果 |
-| --- | --- |
-| `/dsh 帮我把测试跑一遍` | 在 `cwd` 执行，结果回群 |
-| `@机器人 帮我把测试跑一遍` | 同上（`requireMention: false` 时可省掉前缀） |
-| `/dsh` | 回帮助 |
-| `/dsh ping` | 探活 + 队列状态 |
-| `/dsh stop` | 打断**本群**正在跑的任务 |
-
-### 执行进度
-
-长任务执行中，群里会收到这样的进度消息：
-
-```
-⏳ 进行中 24s · 第 3 步
-▸ 终端 pnpm test --filter core ✓
-▸ 读文件 /src/index.ts ✓
-▸ 搜内容 ×4 route ✓
-… 先确认依赖版本有没有被改动
-```
-
-进度来自 `dsh headless --json` 的 `tool_call` / `tool_result` / `step_start` 事件。
-四条约束避免刷屏：
-
-| 键 | 默认 | 含义 |
-| --- | --- | --- |
-| `progress.enabled` | `true` | 关掉就只有最终答案 |
-| `progress.startAfterMs` | `8000` | **快于此耗时的任务一条进度都不发**，跑完直接给答案 |
-| `progress.minIntervalMs` | `6000` | 两次进度的最小间隔，期间事件合并 |
-| `progress.maxMessages` | `12` | 单任务进度条数上限 |
-
-**只在工具切换时报告**：同一个工具连着调用好几次（比如连续 `grep` 四次），
-群里不会刷四条，只合成一条 `▸ 搜内容 ×4`。换工具、或者中间插了别的动作，才会新起一行。
-
-觉得吵就把 `minIntervalMs` 调到 15000，或直接 `enabled: false`。
-
-**同一个群共用一个 DSH 会话**，所以上下文是连续的：上一条让它读的文件，下一条可以接着问。
-私聊则按人隔离。想每次都开新会话，把 `perGroupSession` 设成 `false`。
-
 ## 配置项
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
-| `allowedGroups` | `[100000001]` | 允许的群号；**空数组 = 不限制任何群** |
-| `allowedUsers` | `[]` | 允许的 QQ 号；非空时群和私聊都额外校验 |
-| `requireMention` | `true` | 群消息没前缀时必须 @ 机器人才处理 |
-| `commandPrefixes` | `['/dsh','/DSH']` | 触发前缀，可加多个 |
-| `perGroupSession` | `true` | 每群一个持久会话 |
+| `privateOnly` | `false` | **只响应私聊**，群里完全静默 |
+| `allowedUsers` | `[]` | 允许的 QQ 号；**空 = 不限制** |
+| `allowedGroups` | `[]` | 允许的群号；**空数组 = 不限制任何群**（不能用来实现只私聊） |
+| `backend` | `internal` | `internal` / `acp` / `headless` |
+| `ackOnReceive` | `true` | 收到消息立刻回「收到，正在处理…」 |
+| `sendAttachments` | `true` | 把独占一行的链接/标记指向的文件发回 QQ |
+| `resetOnIdleMins` | `180` | 空闲多久自动开新会话（0 = 不重置） |
+| `requireMention` | `true` | 仅群聊：没前缀时必须 @ 机器人 |
+| `commandPrefixes` | `['/dsh','/DSH']` | 触发前缀 |
+| `perGroupSession` | `true` | 每个聊天一个持久会话 |
 | `cwd` | 空 | 执行目录；空则用 DSH 进程当前目录 |
-| `timeoutSeconds` | `600` | 单任务超时，到点杀进程 |
-| `maxOutputChars` | `3000` | 单条 QQ 消息长度上限，超出自动分片 |
+| `timeoutSeconds` | `600` | 单任务超时 |
+| `maxOutputChars` | `3000` | 单条消息长度上限，超出自动分片 |
 | `maxConcurrent` | `2` | 全局并行任务数 |
-| `progress.enabled` | `true` | 是否在群里报执行进度 |
-| `progress.startAfterMs` | `8000` | 快任务不报进度的阈值 |
-| `progress.minIntervalMs` | `6000` | 进度节流间隔 |
+| `progress.enabled` | `true` | 是否报执行进度 |
+| `progress.startAfterMs` | `3000` | 快于此耗时的任务不报进度 |
+| `progress.minIntervalMs` | `5000` | 进度节流间隔 |
 | `progress.maxMessages` | `12` | 单任务进度条数上限 |
+| `napcat.dir` | — | NapCat 安装目录，设置页「启动机器人」用 |
 | `onebot.endpoint` | `ws://127.0.0.1:3001` | NapCat 的 WS 服务端 |
 | `onebot.accessToken` | 空 | 与 NapCat 里的 Token 一致 |
-| `command.bin` | `dsh` | dsh 可执行文件；Windows 上会自动解析成 `dsh.cmd` |
-| `command.profile` | `headless` | **必填**，跑任务用哪个 profile（模型/凭据来源） |
+| `command.bin` | `dsh` | dsh 可执行文件；Windows 上自动解析成 `dsh.cmd` |
+| `command.profile` | `headless` | 跑任务用哪个 profile（模型/凭据来源） |
 | `command.mode` | 自动探测 | `json`（0.1.7+ 事件流）或 `plain`（≤0.1.5 纯文本） |
-| `command.profileArgs` | `['--json']` | 只放 app 自己的参数；选 profile 由 `command.profile` 负责 |
-
-## 安全
-
-> **这个插件把你电脑的执行权接到了群聊上。** 群成员 = 能在这台机器上跑命令的人。
-
-- 默认 `disabled: true`，装完必须手动开；
-- `allowedGroups` 只放你自己的群，**别写成空数组**；
-- 机器人不加陌生群，别开「允许陌生人拉群」；
-- 想更保守：`allowedUsers` 填上你自己的 QQ 号，这样群里只有你能驱动它；
-- 任务以运行 DSH 的账户身份执行——在 Windows 上就是你的用户账户，不是管理员。真要有破坏力的操作，
-  DSH 自己的审批/沙箱仍然拦在前面。
 
 ## 实现要点
 
-- **不用 DSH 内部 API**，只调 `dsh headless`，所以能跨 DSH 版本移植，模型和密钥沿用你电脑上已配好的。
-- 任务从 **stdin** 喂给子进程（`dsh headless -`），绕开 Windows 引号与中文编码的坑。
-- 答案从 stdout 的 NDJSON 里取 `final` 事件，`turn_end` 的 `reason` 用来解释失败原因。
-- OneBot 断线指数退避重连，`/dsh stop` 直接 kill 对应子进程而不是切换别的通道。
-- `/dsh stop` **只对自己那个会话生效**，防止群友互相打断。
+- **默认走 DSH 进程内会话**（`ctx.agents.create()`），所以没有冷启动，
+  而且会话在 Web 里可见可接管。代价是依赖 DSH 内部 API，升级大版本时可能要跟着改。
+- **三级回退**：`internal` → `acp` → `headless`。前一级不可用（服务缺失、profile 不通）
+  自动降级，不会因为一处失败就整个不可用。
+- **answer 从会话事件里取**：读 `session.snapshotEvents()` 里本轮的 `assistant/message`，
+  用 `await agent.whenIdle()` 等回合结束，比轮询可靠。
+- **消息必须带 id**：用 `createUserMessage()` 构造，手搓裸对象会让会话日志校验失败、
+  历史对话打不开（详见上面第 5 点）。
+- OneBot 断线**指数退避重连**。
+- `/dsh stop` **只对当前聊天生效**，防止互相打断。
