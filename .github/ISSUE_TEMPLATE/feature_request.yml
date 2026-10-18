@@ -1,0 +1,34 @@
+name: ✨ 功能建议
+description: 想要一个新能力
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        欢迎提想法。如果是对现有行为的改进，也走这里。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你想解决什么问题
+      description: 先说场景，再说方案 —— 场景比方案重要
+      placeholder: 我在外面用手机时，想让它每跑完一步就把中间结果发给我，而不是等全部做完
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 你希望怎么做
+      placeholder: 希望能配置成「每个工具调用完成就发一条」
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 你试过的替代方案
+      placeholder: 试过把 progress.minIntervalMs 调小，但还是只报步骤不报结果
+    validations:
+      required: false

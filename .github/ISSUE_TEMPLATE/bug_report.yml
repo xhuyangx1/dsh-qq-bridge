@@ -1,0 +1,98 @@
+name: 🐛 Bug 报告
+description: 有东西没按预期工作
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请尽量把信息填全 —— 这类问题大多出在环境差异上。
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已经搜索过现有 Issues，没有重复
+          required: true
+        - label: 我已确认 DSH 和本插件都是最新版本
+          required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      description: 一句话说清现象
+      placeholder: 私聊发消息后，10 秒内没有任何回复，之后直接超时
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 你期望什么
+      placeholder: 应该 0.2 秒内收到「收到，正在处理…」
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: backend
+    attributes:
+      label: 执行后端
+      options:
+        - internal（默认）
+        - acp
+        - headless
+        - 不确定
+    validations:
+      required: true
+
+  - type: input
+    id: dsh
+    attributes:
+      label: DSH 版本
+      placeholder: 0.2.0-rc.2
+    validations:
+      required: true
+
+  - type: input
+    id: napcat
+    attributes:
+      label: NapCat 版本
+      placeholder: 4.18.38
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      options:
+        - Windows
+        - Linux
+        - macOS
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志
+      description: |
+        DSH 设置 → QQ 桥 → 运行日志，把「插件」和「NapCat」两页的相关内容贴过来。
+        ⚠️ 贴之前删掉自己的 QQ 号和本机路径。
+      render: shell
+    validations:
+      required: false

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 先看 README
+    url: https://github.com/xhuyangx1/dsh-qq-bridge#readme
+    about: 安装、配置、常见问题都在里面，尤其是「五个必须注意的点」
+  - name: 💬 讨论区
+    url: https://github.com/xhuyangx1/dsh-qq-bridge/discussions
+    about: 用法交流、想法讨论走这里，不用开 Issue

@@ -25,6 +25,14 @@
     "bot",
     "agent"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xhuyangx1/dsh-qq-bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xhuyangx1/dsh-qq-bridge/issues"
+  },
+  "homepage": "https://github.com/xhuyangx1/dsh-qq-bridge#readme",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
