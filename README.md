@@ -5,6 +5,17 @@
 手机上给机器人发一句话，家里/公司的电脑就真的开始干活 —— 会话直接在 DSH 进程内创建，
 所以你在 Web 界面里能看着它跑，也能随时接管过来继续打字。
 
+<!-- 截图：把 PNG 放到 docs/ 下即可自动显示，详见 docs/SCREENSHOTS.md -->
+<p align="center">
+  <img src="docs/qq-chat.png" alt="在 QQ 里下达任务" width="260" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="docs/settings-page.png" alt="DSH 设置里的控制面板" width="620" />
+</p>
+
+<p align="center">
+  <sub>左边：在 QQ 里发一句话 &nbsp;|&nbsp; 右边：DSH 设置里的控制面板</sub>
+</p>
+
 ```
 QQ 消息（默认仅私聊）
    ↓  NapCat（电脑上已登录的 QQ）
