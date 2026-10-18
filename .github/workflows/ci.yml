@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test on Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Unit tests
+        run: npm test
+
+  hygiene:
+    name: 仓库卫生检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 必需文件齐全
+        run: |
+          for f in README.md LICENSE package.json cordis.patch.yml; do
+            test -s "$f" || { echo "::error::缺少 $f"; exit 1; }
+          done
+          echo "✓ 必需文件齐全"
+
+      - name: 没有提交大文件
+        run: |
+          found=$(find . -path ./.git -prune -o -type f -size +1M -print)
+          if [ -n "$found" ]; then
+            echo "::error::发现超过 1MB 的文件："
+            echo "$found"
+            exit 1
+          fi
+          echo "✓ 无异常大文件"
+
+      - name: 没有遗留的调试代码
+        run: |
+          if grep -rIn --exclude-dir=.git --exclude-dir=node_modules \
+               -e 'debugger' \
+               -e '\.only(' \
+               -e 'TODO: remove' . ; then
+            echo "::error::发现遗留的调试代码"
+            exit 1
+          fi
+          echo "✓ 无遗留调试代码"
