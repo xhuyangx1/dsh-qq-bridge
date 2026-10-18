@@ -9,9 +9,9 @@
 
 <!-- 截图：把 PNG 放到 docs/ 下即可自动显示，详见 docs/SCREENSHOTS.md -->
 <p align="center">
-  <img src="docs/qq-chat.png" alt="在 QQ 里下达任务" width="260" />
+  <img src="docs/qq-chat.png" alt="在 QQ 里下达任务" width="300" />
   &nbsp;&nbsp;&nbsp;
-  <img src="docs/settings-page.png" alt="DSH 设置里的控制面板" width="620" />
+  <img src="docs/settings-page.png" alt="DSH 设置里的控制面板" width="640" />
 </p>
 
 <p align="center">

@@ -9,9 +9,9 @@ Sessions are created **inside the running DSH process**, so you can watch it wor
 in the DSH web UI — and take over the very same conversation from your desk.
 
 <p align="center">
-  <img src="docs/qq-chat.png" alt="Sending a task from QQ" width="260" />
+  <img src="docs/qq-chat.png" alt="Sending a task from QQ" width="300" />
   &nbsp;&nbsp;&nbsp;
-  <img src="docs/settings-page.png" alt="Control panel inside DSH settings" width="620" />
+  <img src="docs/settings-page.png" alt="Control panel inside DSH settings" width="640" />
 </p>
 
 <p align="center">
